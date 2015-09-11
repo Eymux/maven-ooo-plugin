@@ -45,9 +45,16 @@ package org.openoffice.maven.idl;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.util.Collection;
+import java.util.List;
 import java.util.regex.Pattern;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.Transformer;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.maven.plugin.*;
 import org.codehaus.plexus.util.cli.CommandLineException;
 import org.openoffice.maven.BuildInfo;
@@ -165,9 +172,19 @@ public class IdlBuilderMojo extends AbstractMojo {
 
                 this.getLog().info("Merging into types.rdb file");
                 // Merge the URD files into a types.rdb file
-                VisitableFile urdFiles = new VisitableFile(
-                       ConfigurationManager.getUrdDir());
-                urdFiles.accept(new RegmergeVisitor());
+                File urdDir = new File(ConfigurationManager.getUrdDir());
+                Collection<File> files = FileUtils.listFiles(urdDir, new String[] {"urd"}, true);
+                String[] filenames = (String[]) CollectionUtils.collect(files, new Transformer<File, String>() {
+                    @Override
+                    public String transform(File file) {
+                        return file.getAbsolutePath();
+                    }
+                }).toArray(new String[]{});
+                        
+                int n = ConfigurationManager.runCommand("regmerge", ArrayUtils.addAll(new String[] { ConfigurationManager.getTypesFile(), "/UCR" }, filenames));
+                if (n != 0) {
+                    throw new CommandLineException("regmerge returned with " + n);
+                }
 
                 this.getLog().info("Generating classes from the types.rdb file");
                 // Run javamaker against the types.rdb file
@@ -175,7 +192,6 @@ public class IdlBuilderMojo extends AbstractMojo {
             } else {
                 this.getLog().warn("No idl file to build");
             }
-            
         } catch (Exception e) {
             this.getLog().error("Error during idl-build", e);
             //throw new MojoFailureException("Please check the above errors");
@@ -240,7 +256,7 @@ public class IdlBuilderMojo extends AbstractMojo {
         String classesDir = ConfigurationManager.getClassesOutput().getPath();
         String oooTypesFile = ConfigurationManager.getOOoTypesFile();
         String rootModule = guessRootModule();
-        int n = ConfigurationManager.runCommand("javamaker", "-T" + rootModule + ".*", "-nD", "-Gc", "-BUCR", "-O",
+        int n = ConfigurationManager.runCommand("javamaker", "-T" + rootModule + ".*", "-nD", "-Gc" /*, "-BUCR"*/, "-O",
                 classesDir, typesFile, "-X" + oooTypesFile, "-X" + ConfigurationManager.getOffapiTypesFile());
         if (n != 0) {
             throw new CommandLineException("javamaker exits with " + n);

@@ -149,6 +149,10 @@ public final class Environment {
                 officeBaseHome = new File(getOfficeHome(), "Basis");
             } else {
                 officeBaseHome = new File(getOfficeHome(), "basis-link");
+                if (!officeBaseHome.exists())
+                {
+                    officeBaseHome = getOfficeHome();
+                }
             }
         }
         return officeBaseHome;

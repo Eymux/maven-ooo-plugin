@@ -28,6 +28,8 @@
 package org.openoffice.maven;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.lang.StringUtils;
@@ -143,7 +145,10 @@ public class ConfigurationManager {
      * @return the OpenOffice.org <code>offapi.rdb</code> file path
      */
     public static String getOffapiTypesFile() {
-        return new File(Environment.getOfficeBaseHome(), "program/offapi.rdb").getPath();
+        if (new File(Environment.getOfficeBaseHome(), "program/offapi.rdb").exists())
+            return new File(Environment.getOfficeBaseHome(), "program/offapi.rdb").getPath();
+        else
+            return new File(Environment.getOfficeBaseHome(), "program/types/offapi.rdb").getPath();
     }
     
     /**
@@ -338,6 +343,13 @@ public class ConfigurationManager {
         return runCommand(cl);
     }
 
+    public static int runCommand(final String cmd, final Object[] args) throws CommandLineException {
+        List<String> sargs = new ArrayList<String>();
+        for (Object o : args)
+            sargs.add(o.toString());
+        return runCommand(cmd, sargs.toArray(new String[]{}));
+    }
+    
     private static int runCommand(Commandline cl) throws CommandLineException {
         try {
             setUpEnvironmentFor(cl);
